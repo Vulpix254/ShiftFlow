@@ -613,9 +613,23 @@
 
     function downloadTable(){
       const people = state.people.slice().sort((a,b) => a.name.localeCompare(b.name));
-      const rows = [['Name','Current Section','Default Section','Status','AIM Staff','Time From','Time To','Notes']];
+      const targetRooms = [
+        'Baile Beag','Caislean','Cairde','Noinin','Snug',
+        'Sasta','Draoicht','Geal','Rince','Afterschool','Extras'
+      ];
+      const baseHeaders = [
+        'Day','Name','Current Section','Default Section',
+        'Status','AIM','Time From','Time To','Notes'
+      ];
+      const targetHeaders = targetRooms.map(r => `Target ${r}`);
+      const rows = [baseHeaders.concat(targetHeaders)];
+
+      const day = state.dayLabel || 'Current day';
+      const targetRowValues = targetRooms.map(room => String(state.targets[room] || 0));
+
       people.forEach(person => {
-        rows.push([
+        const base = [
+          day,
           person.name,
           person.room,
           person.defaultRoom,
@@ -624,11 +638,14 @@
           person.timeFrom || '',
           person.timeTo || '',
           person.note || ''
-        ]);
+        ];
+        rows.push(base.concat(targetRowValues));
       });
+
       const csv = rows
         .map(row => row.map(value => '"' + String(value).replaceAll('"','""') + '"').join(','))
         .join('\n');
+
       const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -640,87 +657,112 @@
     document.getElementById('downloadBtn').addEventListener('click', downloadTable);
   </script>
 
-  <!-- CSV upload: allows layout to be restored on another device from the downloaded CSV -->
+  <!-- CSV upload: reads Day, AIM, and Target ROOM columns -->
   <script>
-  (function(){
-    function parseCsv(text){
-      const lines = text.split(/\r?\n/).filter(l => l.trim().length);
-      if (lines.length < 2) return [];
-      const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g,'').trim());
-      return lines.slice(1).map(line => {
-        const cols = [];
-        let cur = '';
-        let inside = false;
-        for (let i = 0; i < line.length; i++) {
-          const ch = line[i];
-          if (ch === '"') {
-            if (inside && line[i+1] === '"') { cur += '"'; i++; }
-            else { inside = !inside; }
-          } else if (ch === ',' && !inside) {
-            cols.push(cur); cur = '';
-          } else {
-            cur += ch;
+    (function(){
+      function parseCsv(text){
+        const lines = text.split(/\r?\n/).filter(l => l.trim().length);
+        if (lines.length < 2) return [];
+        const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g,'').trim());
+        return lines.slice(1).map(line => {
+          const cols = [];
+          let cur = '';
+          let inside = false;
+          for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') {
+              if (inside && line[i+1] === '"') { cur += '"'; i++; }
+              else { inside = !inside; }
+            } else if (ch === ',' && !inside) {
+              cols.push(cur); cur = '';
+            } else {
+              cur += ch;
+            }
           }
-        }
-        cols.push(cur);
-        const row = {};
-        headers.forEach((h,idx) => {
-          row[h] = (cols[idx] || '').replace(/^"|"$/g,'');
+          cols.push(cur);
+          const row = {};
+          headers.forEach((h,idx) => {
+            row[h] = (cols[idx] || '').replace(/^"|"$/g,'');
+          });
+          return row;
         });
-        return row;
-      });
-    }
+      }
 
-    function handleFile(file){
-      const reader = new FileReader();
-      reader.onload = function(e){
-        try {
-          const rows = parseCsv(e.target.result);
-          if (!rows.length){
-            alert('CSV looked empty.');
-            return;
+      function handleFile(file){
+        const reader = new FileReader();
+        reader.onload = function(e){
+          try {
+            const rows = parseCsv(e.target.result);
+            if (!rows.length){
+              alert('CSV looked empty.');
+              return;
+            }
+
+            const targetRooms = [
+              'Baile Beag','Caislean','Cairde','Noinin','Snug',
+              'Sasta','Draoicht','Geal','Rince','Afterschool','Extras'
+            ];
+
+            const people = rows.map(row => ({
+              id: Math.random().toString(36).slice(2,9),
+              name: row['Name'] || '',
+              room: row['Current Section'] || 'Extras',
+              defaultRoom: row['Default Section'] || 'Extras',
+              status: row['Status'] || 'in',
+              isAim: (row['AIM'] || '').toLowerCase().startsWith('y'),
+              timeFrom: row['Time From'] || '',
+              timeTo: row['Time To'] || '',
+              note: row['Notes'] || ''
+            })).filter(p => p.name.trim().length);
+
+            if (!people.length){
+              alert('No names found in CSV.');
+              return;
+            }
+
+            const first = rows[0] || {};
+            const targets = {};
+            targetRooms.forEach(room => {
+              const key = `Target ${room}`;
+              if (Object.prototype.hasOwnProperty.call(first, key)) {
+                const v = Number(first[key] || 0);
+                if (!Number.isNaN(v)) targets[room] = v;
+              }
+            });
+
+            const raw = localStorage.getItem('classroom-staff-planner-v2');
+            let data = raw ? JSON.parse(raw) : { targets:{}, dayLabel:'' };
+
+            data.people = people;
+            if (Object.keys(targets).length) {
+              data.targets = targets;
+            }
+
+            if (rows[0] && rows[0]['Day']) {
+              data.dayLabel = rows[0]['Day'];
+            }
+
+            localStorage.setItem('classroom-staff-planner-v2', JSON.stringify(data));
+            alert('Layout loaded from CSV. Reload the page to see it.');
+          } catch (err) {
+            console.error(err);
+            alert('Could not read that CSV. Make sure it came from the Download table button.');
           }
-          const people = rows.map(row => ({
-            id: Math.random().toString(36).slice(2,9),
-            name: row['Name'] || '',
-            room: row['Current Section'] || 'Extras',
-            defaultRoom: row['Default Section'] || 'Extras',
-            status: row['Status'] || 'in',
-            isAim: (row['AIM Staff'] || '').toLowerCase().startsWith('y'),
-            timeFrom: row['Time From'] || '',
-            timeTo: row['Time To'] || '',
-            note: row['Notes'] || ''
-          })).filter(p => p.name.trim().length);
+        };
+        reader.readAsText(file);
+      }
 
-          if (!people.length){
-            alert('No names found in CSV.');
-            return;
-          }
-
-          const raw = localStorage.getItem('classroom-staff-planner-v2');
-          let data = raw ? JSON.parse(raw) : { targets:{}, dayLabel:'' };
-          data.people = people;
-          localStorage.setItem('classroom-staff-planner-v2', JSON.stringify(data));
-          alert('Layout loaded from CSV. Reload the page to see it.');
-        } catch (err) {
-          console.error(err);
-          alert('Could not read that CSV. Make sure it came from the Download table button.');
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    const uploadBtn = document.getElementById('uploadBtn');
-    const uploadInput = document.getElementById('uploadInput');
-    if (uploadBtn && uploadInput){
-      uploadBtn.addEventListener('click', function(){
-        uploadInput.click();
-      });
-      uploadInput.addEventListener('change', function(){
-        if (this.files && this.files[0]) handleFile(this.files[0]);
-      });
-    }
-  })();
+      const uploadBtn = document.getElementById('uploadBtn');
+      const uploadInput = document.getElementById('uploadInput');
+      if (uploadBtn && uploadInput){
+        uploadBtn.addEventListener('click', function(){
+          uploadInput.click();
+        });
+        uploadInput.addEventListener('change', function(){
+          if (this.files && this.files[0]) handleFile(this.files[0]);
+        });
+      }
+    })();
   </script>
 </body>
 </html>
