@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Classroom Staff Planner</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root, [data-theme="light"] {
+      --bg:#f7f6f2; --surface:#fbfaf7; --surface-2:#f2efe9; --border:#ddd7cf; --text:#24211c; --muted:#6e6a63;
+      --primary:#0b6a6f; --primary-soft:#d7e8e6; --danger:#a23f66; --danger-soft:#f6e2e6; --success:#4b7b35; --success-soft:#e5f1df;
+      --aim:#8b6800; --aim-soft:#fff1b8; --radius:18px; --radius-sm:12px; --shadow:0 8px 24px rgba(28,23,16,.06);
+      --space-2:.5rem; --space-3:.75rem; --space-4:1rem; --space-5:1.25rem; --space-6:1.5rem; --space-8:2rem;
+      --text-sm:clamp(.875rem,.82rem + .2vw,1rem); --text-base:clamp(1rem,.95rem + .2vw,1.1rem); --text-lg:clamp(1.2rem,1.05rem + .8vw,1.6rem); --text-xl:clamp(1.6rem,1.2rem + 1.4vw,2.3rem);
+    }
+    [data-theme="dark"] {
+      --bg:#171614; --surface:#1d1b18; --surface-2:#24211d; --border:#36322d; --text:#ece7de; --muted:#aaa297;
+      --primary:#67a9b1; --primary-soft:#243535; --danger:#d17095; --danger-soft:#49313b; --success:#8fbe68; --success-soft:#293926;
+      --aim:#ffd24a; --aim-soft:#4b3e10; --shadow:0 10px 30px rgba(0,0,0,.28);
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    html{-webkit-text-size-adjust:none;text-size-adjust:none}
+    body{margin:0;font-family:'Satoshi',Inter,sans-serif;background:var(--bg);color:var(--text);font-size:var(--text-base);line-height:1.5}
+    button,input,select,textarea{font:inherit;color:inherit}
+    button{cursor:pointer}
+    .wrap{max-width:1500px;margin:0 auto;padding:var(--space-5)}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:var(--space-4);margin-bottom:var(--space-5)}
+    .title h1{margin:0;font-size:var(--text-xl);line-height:1.05}
+    .title p{margin:.4rem 0 0;color:var(--muted);font-size:var(--text-sm)}
+    .actions,.toolbar{display:flex;flex-wrap:wrap;gap:.75rem}
+    .btn{min-height:44px;padding:0 1rem;border-radius:999px;border:1px solid transparent;background:var(--surface-2)}
+    .btn.primary{background:var(--primary);color:white}
+    .btn.ghost{border-color:var(--border);background:transparent}
+    .shell{display:grid;grid-template-columns:320px 1fr;gap:var(--space-5)}
+    .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .panel-head{padding:var(--space-5);border-bottom:1px solid var(--border)}
+    .panel-head h2,.panel-head h3{margin:0;font-size:var(--text-lg)}
+    .panel-head p{margin:.35rem 0 0;color:var(--muted);font-size:var(--text-sm)}
+    .panel-body{padding:var(--space-5)}
+    .stack{display:grid;gap:var(--space-4)}
+    .field{display:grid;gap:.35rem}
+    .field label,.radio-group legend{font-size:var(--text-sm);color:var(--muted)}
+    .field input,.field select,.field textarea{width:100%;border:1px solid var(--border);background:var(--surface-2);border-radius:14px;padding:.8rem .9rem;min-height:44px}
+    .field textarea{min-height:88px;resize:vertical}
+    .helper,.mini{font-size:var(--text-sm);color:var(--muted)}
+    .teacher-list{display:grid;gap:.65rem;max-height:320px;overflow:auto;padding-right:.3rem}
+    .teacher-row{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.8rem .9rem;border:1px solid var(--border);border-radius:14px;background:var(--surface-2)}
+    .teacher-row strong{display:block}
+    .teacher-row span{display:block;color:var(--muted);font-size:var(--text-sm)}
+    .legend{display:flex;flex-wrap:wrap;gap:.6rem}
+    .pill{display:inline-flex;align-items:center;padding:.35rem .7rem;border-radius:999px;background:var(--primary-soft);color:var(--primary);font-size:var(--text-sm);font-weight:700}
+    .pill.aim{background:var(--aim-soft);color:var(--aim)}
+    .board{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--space-4)}
+    .room{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:var(--space-4);min-height:220px;display:flex;flex-direction:column;gap:.9rem}
+    .room-under{background:var(--danger-soft);border-color:color-mix(in srgb,var(--danger) 30%, var(--border))}
+    .room-full{background:var(--success-soft);border-color:color-mix(in srgb,var(--success) 32%, var(--border))}
+    .room-neutral{background:var(--surface);border-color:var(--border)}
+    .room-header{display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem}
+    .room-header h3{margin:0;font-size:1.06rem;line-height:1.15}
+    .room-header small{display:block;color:var(--muted);margin-top:.25rem}
+    .room-status{font-size:var(--text-sm);color:var(--muted);margin-top:.25rem}
+    .room-target{width:74px;min-height:40px;border:1px solid var(--border);background:rgba(255,255,255,.45);border-radius:12px;padding:.2rem .5rem}
+    .person-list{display:grid;gap:.6rem}
+    .person-card{padding:.7rem .8rem;border-radius:16px;background:var(--surface-2);border:1px solid var(--border);text-align:left;width:100%}
+    .person-card.aim{background:var(--aim-soft);border-color:color-mix(in srgb,var(--aim) 40%, var(--border))}
+    .person-head{display:flex;justify-content:space-between;gap:.6rem;align-items:flex-start}
+    .person-card strong{display:block;font-size:.98rem}
+    .person-meta{display:flex;justify-content:space-between;gap:.75rem;margin-top:.25rem;font-size:var(--text-sm);color:var(--muted)}
+    .badge-row{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem}
+    .mini-badge{display:inline-flex;align-items:center;padding:.18rem .48rem;border-radius:999px;background:var(--primary-soft);color:var(--primary);font-size:.76rem;font-weight:700}
+    .mini-badge.aim{background:var(--aim-soft);color:var(--aim)}
+    .empty{padding:1rem;border:1px dashed var(--border);border-radius:16px;color:var(--muted);font-size:var(--text-sm);text-align:center;background:transparent}
+    .footer-note{margin-top:var(--space-4);color:var(--muted);font-size:var(--text-sm)}
+    .note-preview{margin-top:.35rem;font-size:var(--text-sm);color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .theme-toggle{width:44px;min-width:44px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+    dialog{border:none;border-radius:22px;padding:0;width:min(580px,calc(100vw - 2rem));background:var(--surface);color:var(--text);box-shadow:0 30px 80px rgba(0,0,0,.25)}
+    dialog::backdrop{background:rgba(0,0,0,.45)}
+    .modal-head,.modal-body{padding:var(--space-5)}
+    .modal-head{border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:1rem}
+    .modal-head h3{margin:0}
+    .modal-grid{display:grid;gap:var(--space-4)}
+    .radio-group{border:1px solid var(--border);border-radius:14px;padding:1rem;background:var(--surface-2)}
+    .radio-line{display:flex;align-items:center;gap:.6rem;margin-top:.65rem}
+    .summary-strip{display:flex;flex-wrap:wrap;gap:.6rem;margin-bottom:var(--space-4)}
+    @media (max-width:1180px){.shell{grid-template-columns:1fr}.board{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media (max-width:780px){.board{grid-template-columns:1fr}.wrap{padding:1rem}.topbar{align-items:flex-start;flex-direction:column}.actions{width:100%}.actions .btn{flex:1 1 auto}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="title">
+        <h1>Classroom Staff Planner</h1>
+        <p>A simpler daily view of who is in each room, who is absent, and who is available to move.</p>
+      </div>
+      <div class="actions">
+        <button class="btn ghost theme-toggle" id="themeToggle" aria-label="Toggle theme"></button>
+        <button class="btn ghost" id="saveAllBtn">Save layout</button>
+        <button class="btn ghost" id="returnDefaultsBtn">Return all to default classroom</button>
+        <button class="btn primary" id="downloadBtn">Download table</button>
+      </div>
+    </div>
+
+    <div class="shell">
+      <aside class="panel">
+        <div class="panel-head">
+          <h2>Staff setup</h2>
+          <p>Save names once, choose their default room, then adjust the day as needed.</p>
+        </div>
+        <div class="panel-body stack">
+          <div class="field">
+            <label for="dayLabel">Day label</label>
+            <input id="dayLabel" type="text" placeholder="e.g. Tuesday 21 April" />
+          </div>
+
+          <div class="field">
+            <label for="teacherName">Staff name</label>
+            <input id="teacherName" type="text" placeholder="e.g. Angela" />
+          </div>
+
+          <div class="field">
+            <label for="defaultRoom">Default room</label>
+            <select id="defaultRoom"></select>
+          </div>
+
+          <div class="field">
+            <label for="defaultStatus">Default status</label>
+            <select id="defaultStatus">
+              <option value="in">In</option>
+              <option value="absent">Absent</option>
+            </select>
+          </div>
+
+          <button class="btn primary" id="addTeacherBtn">Add staff member</button>
+
+          <div>
+            <div class="toolbar">
+              <button class="btn ghost" id="loadDemoBtn">Load example names</button>
+              <button class="btn ghost" id="clearPeopleBtn">Clear all staff</button>
+              <button class="btn ghost" id="clearPlacementsBtn">Clear current placements</button>
+            </div>
+            <div class="legend">
+              <span class="pill">In</span>
+              <span class="pill aim">AIM</span>
+              <span class="pill">AS</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="helper" style="margin-bottom:.6rem">Saved staff</div>
+            <div id="teacherList" class="teacher-list"></div>
+          </div>
+        </div>
+      </aside>
+
+      <main>
+        <div class="toolbar">
+          <span class="mini">
+            Set an expected number for each classroom. Rooms below target go pastel red,
+            and rooms at target or above go pastel green.
+          </span>
+          <input type="file" id="uploadInput" accept="text/csv,.csv" style="display:none" />
+          <button class="btn ghost" id="uploadBtn">Upload layout (CSV)</button>
+        </div>
+
+        <div id="summaryStrip" class="summary-strip"></div>
+        <div id="board" class="board"></div>
+        <p class="footer-note">
+          Tip: click a person to move them, mark them out sick or on annual leave, add optional times, or leave a note
+          like “At 1pm, she will move to Sasta”.
+        </p>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="personDialog">
+    <div class="modal-head">
+      <div>
+        <h3 id="dialogTitle">Edit person</h3>
+        <div id="dialogSub" class="mini"></div>
+      </div>
+      <button class="btn ghost" id="closeDialogBtn">Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-grid">
+        <div class="field">
+          <label for="editRoom">Section</label>
+          <select id="editRoom"></select>
+        </div>
+        <div class="field">
+          <label for="editStatus">Status</label>
+          <select id="editStatus">
+            <option value="in">In</option>
+            <option value="absent">Absent</option>
+          </select>
+        </div>
+        <div class="radio-group">
+          <legend>AIM staff</legend>
+          <label class="radio-line"><input type="radio" name="aimStatus" value="yes" id="aimYes"> Yes</label>
+          <label class="radio-line"><input type="radio" name="aimStatus" value="no" id="aimNo"> No</label>
+        </div>
+        <div class="field">
+          <label for="editFrom">Optional start time</label>
+          <input id="editFrom" type="time" />
+        </div>
+        <div class="field">
+          <label for="editTo">Optional end time</label>
+          <input id="editTo" type="time" />
+        </div>
+        <div class="field">
+          <label for="editNote">Notes</label>
+          <textarea id="editNote" placeholder="e.g. At 1pm, she will move to Sasta"></textarea>
+        </div>
+        <div class="toolbar" style="margin-bottom:0">
+          <button class="btn primary" id="savePersonBtn">Save changes</button>
+          <button class="btn ghost" id="setDefaultBtn">Make this their default room</button>
+          <button class="btn ghost" id="deletePersonBtn">Delete person</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    const ROOMS = [
+      'Baile Beag','Caislean','Cairde','Noinin','Snug','Sasta','Draoicht','Geal','Rince',
+      'Afterschool','Extras','Out Sick','Annual Leave'
+    ];
+    const STORAGE_KEY = 'classroom-staff-planner-v2';
+    const trackedRooms = [
+      'Baile Beag','Caislean','Cairde','Noinin','Snug','Sasta','Draoicht','Geal','Rince','Afterschool','Extras'
+    ];
+
+    const state = {
+      theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+      dayLabel: '',
+      people: [],
+      targets: {},
+      activePersonId: null
+    };
+
+    const el = {
+      board: document.getElementById('board'),
+      summaryStrip: document.getElementById('summaryStrip'),
+      teacherList: document.getElementById('teacherList'),
+      defaultRoom: document.getElementById('defaultRoom'),
+      editRoom: document.getElementById('editRoom'),
+      teacherName: document.getElementById('teacherName'),
+      defaultStatus: document.getElementById('defaultStatus'),
+      dayLabel: document.getElementById('dayLabel'),
+      personDialog: document.getElementById('personDialog'),
+      dialogTitle: document.getElementById('dialogTitle'),
+      dialogSub: document.getElementById('dialogSub'),
+      editStatus: document.getElementById('editStatus'),
+      editFrom: document.getElementById('editFrom'),
+      editTo: document.getElementById('editTo'),
+      editNote: document.getElementById('editNote'),
+      aimYes: document.getElementById('aimYes'),
+      aimNo: document.getElementById('aimNo'),
+      themeToggle: document.getElementById('themeToggle')
+    };
+
+    function uid(){ return Math.random().toString(36).slice(2,9); }
+
+    function saveState(){
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          dayLabel: state.dayLabel,
+          people: state.people,
+          targets: state.targets,
+          theme: state.theme
+        })
+      );
+    }
+
+    function loadState(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      try {
+        const parsed = JSON.parse(raw);
+        state.dayLabel = parsed.dayLabel || '';
+        state.people = Array.isArray(parsed.people) ? parsed.people : [];
+        state.targets = parsed.targets || {};
+        state.theme = parsed.theme || state.theme;
+      } catch {}
+    }
+
+    function applyTheme(){
+      document.documentElement.setAttribute('data-theme', state.theme);
+      el.themeToggle.innerHTML = state.theme === 'dark'
+        ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
+        : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    }
+
+    function populateRoomOptions(target){
+      target.innerHTML = ROOMS.map(room => `<option value="${room}">${room}</option>`).join('');
+    }
+
+    function personById(id){ return state.people.find(p => p.id === id); }
+
+    function statusText(person){
+      if (person.room === 'Out Sick') return 'Out Sick';
+      if (person.room === 'Annual Leave') return 'Annual Leave';
+      if (person.room === 'Extras') return 'Extras';
+      if (person.room === 'Afterschool') return 'Afterschool';
+      return person.status === 'absent' ? 'Absent' : 'In';
+    }
+
+    function timeText(person){
+      if (!person.timeFrom && !person.timeTo) return '';
+      if (person.timeFrom && person.timeTo) return `${person.timeFrom}–${person.timeTo}`;
+      return person.timeFrom || person.timeTo || '';
+    }
+
+    function addPerson(name, defaultRoom, defaultStatus='in'){
+      state.people.push({
+        id: uid(),
+        name,
+        defaultRoom,
+        room: defaultRoom,
+        status: defaultStatus,
+        isAim: false,
+        timeFrom: '',
+        timeTo: '',
+        note: ''
+      });
+      saveState();
+      render();
+    }
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'",'&#39;');
+    }
+
+    function renderTeacherList(){
+      if (!state.people.length){
+        el.teacherList.innerHTML = '<div class="empty">No staff saved yet.</div>';
+        return;
+      }
+      el.teacherList.innerHTML = state.people
+        .slice()
+        .sort((a,b) => a.name.localeCompare(b.name))
+        .map(person => `
+          <div class="teacher-row">
+            <div>
+              <strong>${escapeHtml(person.name)}</strong>
+              <span>
+                Default: ${escapeHtml(person.defaultRoom)}
+                ${person.defaultRoom === 'Afterschool' ? ' · AS' : ''}
+                ${person.isAim ? ' · AIM' : ''}
+              </span>
+            </div>
+            <button class="btn ghost" data-open="${person.id}">Edit</button>
+          </div>
+        `).join('');
+    }
+
+    function renderSummaryStrip(){
+      const items = [];
+      trackedRooms.forEach(room => {
+        const people = state.people.filter(p => p.room === room);
+        const target = Number(state.targets[room] || 0);
+        const aimCount = people.filter(p => p.isAim).length;
+        if (!people.length && !target) return;
+        const status = target
+          ? `${people.length}/${target} staff · AIM ${aimCount}`
+          : `${people.length} staff · AIM ${aimCount}`;
+        items.push(`<span class="mini">${escapeHtml(room)}: ${escapeHtml(status)}</span>`);
+      });
+      el.summaryStrip.innerHTML = items.join(' · ') || '';
+    }
+
+    function renderBoard(){
+      el.board.innerHTML = ROOMS.map(room => {
+        const people = state.people
+          .filter(person => person.room === room)
+          .sort((a,b) => a.name.localeCompare(b.name));
+        const target = Number(state.targets[room] || 0);
+        const appliesTarget = trackedRooms.includes(room);
+        let roomClass = 'room-neutral';
+        let status = (room === 'Out Sick' || room === 'Annual Leave')
+          ? 'Tracking absence only'
+          : 'No target set';
+
+        if (appliesTarget && target > 0) {
+          roomClass = people.length >= target ? 'room-full' : 'room-under';
+          status = `${people.length}/${target} assigned`;
+        }
+
+        const aimCount = people.filter(p => p.isAim).length;
+
+        return `
+          <section class="room ${roomClass}">
+            <div class="room-header">
+              <div>
+                <h3>${escapeHtml(room)}</h3>
+                <small>${people.length} ${people.length === 1 ? 'person' : 'people'} · AIM ${aimCount}</small>
+                <div class="room-status">${escapeHtml(status)}</div>
+              </div>
+              ${appliesTarget ? `
+              <label class="mini">
+                Target
+                <input class="room-target" type="number" min="0"
+                  value="${target}"
+                  data-target-room="${escapeHtml(room)}">
+              </label>` : ''}
+            </div>
+            <div class="person-list">
+              ${
+                people.length
+                  ? people.map(person => `
+                    <button class="person-card ${person.isAim ? 'aim' : ''}" data-open="${person.id}">
+                      <div class="person-head">
+                        <strong>${escapeHtml(person.name)}</strong>
+                        <div class="badge-row">
+                          ${person.defaultRoom === 'Afterschool' ? '<span class="mini-badge">AS</span>' : ''}
+                          ${person.isAim ? '<span class="mini-badge aim">AIM</span>' : ''}
+                        </div>
+                      </div>
+                      <div class="person-meta">
+                        <span>${escapeHtml(statusText(person))}</span>
+                        <span>${escapeHtml(timeText(person))}</span>
+                      </div>
+                      ${person.note ? `<div class="note-preview">${escapeHtml(person.note)}</div>` : ''}
+                    </button>
+                  `).join('')
+                  : '<div class="empty">No one placed here.</div>'
+              }
+            </div>
+          </section>
+        `;
+      }).join('');
+    }
+
+    function render(){
+      el.dayLabel.value = state.dayLabel;
+      renderTeacherList();
+      renderBoard();
+      renderSummaryStrip();
+      applyTheme();
+    }
+
+    function resetToDefaults(){
+      state.people = state.people.map(person => ({
+        ...person,
+        room: person.defaultRoom,
+        status: (person.defaultRoom === 'Out Sick' || person.defaultRoom === 'Annual Leave') ? 'absent' : 'in',
+        timeFrom:'',
+        timeTo:'',
+        note:''
+      }));
+      saveState();
+      render();
+    }
+
+    function clearPlacements(){
+      state.people = state.people.map(person => ({
+        ...person,
+        room: 'Extras',
+        status:'in',
+        timeFrom:'',
+        timeTo:'',
+        note:''
+      }));
+      saveState();
+      render();
+    }
+
+    function openPerson(id){
+      const person = personById(id);
+      if (!person) return;
+      state.activePersonId = id;
+      el.dialogTitle.textContent = person.name;
+      el.dialogSub.textContent = `Default room: ${person.defaultRoom}`;
+      el.editRoom.value = person.room;
+      el.editStatus.value = person.status;
+      (person.isAim ? el.aimYes : el.aimNo).checked = true;
+      el.editFrom.value = person.timeFrom || '';
+      el.editTo.value = person.timeTo || '';
+      el.editNote.value = person.note || '';
+      el.personDialog.showModal();
+    }
+
+    function savePersonEdits(){
+      const person = personById(state.activePersonId);
+      if (!person) return;
+      person.room = el.editRoom.value;
+      person.status = el.editStatus.value;
+      person.isAim = el.aimYes.checked;
+      person.timeFrom = el.editFrom.value;
+      person.timeTo = el.editTo.value;
+      person.note = el.editNote.value.trim();
+      if (person.room === 'Out Sick' || person.room === 'Annual Leave') {
+        person.status = 'absent';
+      }
+      saveState();
+      render();
+      el.personDialog.close();
+    }
+
+    function makeCurrentDefault(){
+      const person = personById(state.activePersonId);
+      if (!person) return;
+      person.defaultRoom = el.editRoom.value;
+      saveState();
+      render();
+      el.dialogSub.textContent = `Default room: ${person.defaultRoom}`;
+    }
+
+    function deletePerson(){
+      state.people = state.people.filter(person => person.id !== state.activePersonId);
+      saveState();
+      render();
+      el.personDialog.close();
+    }
+
+    function loadDemo(){
+      state.people = [
+        ['Angela','Baile Beag'],['Emma','Baile Beag'],['Ciara','Baile Beag'],
+        ['Julie','Caislean'],['Tara','Caislean'],['Fiona','Caislean'],
+        ['Orla','Cairde'],['Aoife','Cairde'],['Clodagh','Cairde'],
+        ['Clare','Noinin'],['Una','Noinin'],['Siobhan','Noinin'],
+        ['Brid','Snug'],['Aisling','Snug'],['Faye','Snug'],
+        ['Deirdre','Sasta'],['Laura','Sasta'],['Paula','Sasta'],
+        ['Aine','Draoicht'],['Fiona C','Draoicht'],['Ava','Draoicht'],
+        ['Rachel','Geal'],['Aoibhinn','Geal'],['Sinead','Geal'],
+        ['Ellen','Rince'],['Mary','Rince'],['Joan','Rince'],
+        ['Karen','Extras'],['Anne','Extras'],['Nora','Afterschool'],['Sharon','Afterschool']
+      ].map(([name, defaultRoom]) => ({
+        id: uid(),
+        name,
+        defaultRoom,
+        room: defaultRoom,
+        status: 'in',
+        isAim: false,
+        timeFrom: '',
+        timeTo: '',
+        note: ''
+      }));
+      saveState();
+      render();
+    }
+
+    populateRoomOptions(el.defaultRoom);
+    populateRoomOptions(el.editRoom);
+    loadState();
+    trackedRooms.forEach(room => { if (!(room in state.targets)) state.targets[room] = 0; });
+    render();
+
+    document.getElementById('addTeacherBtn').addEventListener('click', () => {
+      const name = el.teacherName.value.trim();
+      if (!name){
+        alert('Enter a staff name first.');
+        return;
+      }
+      addPerson(name, el.defaultRoom.value, el.defaultStatus.value);
+      el.teacherName.value = '';
+      el.defaultStatus.value = 'in';
+    });
+
+    document.getElementById('loadDemoBtn').addEventListener('click', loadDemo);
+
+    document.getElementById('clearPeopleBtn').addEventListener('click', () => {
+      if (!confirm('Clear all saved staff?')) return;
+      state.people = [];
+      saveState();
+      render();
+    });
+
+    document.getElementById('saveAllBtn').addEventListener('click', () => {
+      state.dayLabel = el.dayLabel.value.trim();
+      saveState();
+      alert('Saved in this browser.');
+    });
+
+    document.getElementById('clearPlacementsBtn').addEventListener('click', clearPlacements);
+    document.getElementById('returnDefaultsBtn').addEventListener('click', resetToDefaults);
+
+    document.getElementById('closeDialogBtn').addEventListener('click', () => el.personDialog.close());
+    document.getElementById('savePersonBtn').addEventListener('click', savePersonEdits);
+    document.getElementById('setDefaultBtn').addEventListener('click', makeCurrentDefault);
+    document.getElementById('deletePersonBtn').addEventListener('click', deletePerson);
+
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      state.theme = state.theme === 'dark' ? 'light' : 'dark';
+      saveState();
+      applyTheme();
+    });
+
+    el.dayLabel.addEventListener('change', () => {
+      state.dayLabel = el.dayLabel.value.trim();
+      saveState();
+    });
+
+    document.addEventListener('click', (event) => {
+      const id = event.target.getAttribute('data-open');
+      if (id) openPerson(id);
+    });
+
+    document.addEventListener('change', (event) => {
+      const room = event.target.getAttribute('data-target-room');
+      if (room){
+        state.targets[room] = Number(event.target.value || 0);
+        saveState();
+        render();
+      }
+    });
+
+    function downloadTable(){
+      const people = state.people.slice().sort((a,b) => a.name.localeCompare(b.name));
+      const rows = [['Name','Current Section','Default Section','Status','AIM Staff','Time From','Time To','Notes']];
+      people.forEach(person => {
+        rows.push([
+          person.name,
+          person.room,
+          person.defaultRoom,
+          person.status,
+          person.isAim ? 'Yes' : 'No',
+          person.timeFrom || '',
+          person.timeTo || '',
+          person.note || ''
+        ]);
+      });
+      const csv = rows
+        .map(row => row.map(value => '"' + String(value).replaceAll('"','""') + '"').join(','))
+        .join('\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'classroom-staff-table.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    document.getElementById('downloadBtn').addEventListener('click', downloadTable);
+  </script>
+
+  <!-- CSV upload: allows layout to be restored on another device from the downloaded CSV -->
+  <script>
+  (function(){
+    function parseCsv(text){
+      const lines = text.split(/\r?\n/).filter(l => l.trim().length);
+      if (lines.length < 2) return [];
+      const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g,'').trim());
+      return lines.slice(1).map(line => {
+        const cols = [];
+        let cur = '';
+        let inside = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') {
+            if (inside && line[i+1] === '"') { cur += '"'; i++; }
+            else { inside = !inside; }
+          } else if (ch === ',' && !inside) {
+            cols.push(cur); cur = '';
+          } else {
+            cur += ch;
+          }
+        }
+        cols.push(cur);
+        const row = {};
+        headers.forEach((h,idx) => {
+          row[h] = (cols[idx] || '').replace(/^"|"$/g,'');
+        });
+        return row;
+      });
+    }
+
+    function handleFile(file){
+      const reader = new FileReader();
+      reader.onload = function(e){
+        try {
+          const rows = parseCsv(e.target.result);
+          if (!rows.length){
+            alert('CSV looked empty.');
+            return;
+          }
+          const people = rows.map(row => ({
+            id: Math.random().toString(36).slice(2,9),
+            name: row['Name'] || '',
+            room: row['Current Section'] || 'Extras',
+            defaultRoom: row['Default Section'] || 'Extras',
+            status: row['Status'] || 'in',
+            isAim: (row['AIM Staff'] || '').toLowerCase().startsWith('y'),
+            timeFrom: row['Time From'] || '',
+            timeTo: row['Time To'] || '',
+            note: row['Notes'] || ''
+          })).filter(p => p.name.trim().length);
+
+          if (!people.length){
+            alert('No names found in CSV.');
+            return;
+          }
+
+          const raw = localStorage.getItem('classroom-staff-planner-v2');
+          let data = raw ? JSON.parse(raw) : { targets:{}, dayLabel:'' };
+          data.people = people;
+          localStorage.setItem('classroom-staff-planner-v2', JSON.stringify(data));
+          alert('Layout loaded from CSV. Reload the page to see it.');
+        } catch (err) {
+          console.error(err);
+          alert('Could not read that CSV. Make sure it came from the Download table button.');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    const uploadBtn = document.getElementById('uploadBtn');
+    const uploadInput = document.getElementById('uploadInput');
+    if (uploadBtn && uploadInput){
+      uploadBtn.addEventListener('click', function(){
+        uploadInput.click();
+      });
+      uploadInput.addEventListener('change', function(){
+        if (this.files && this.files[0]) handleFile(this.files[0]);
+      });
+    }
+  })();
+  </script>
+</body>
+</html>
