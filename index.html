@@ -154,12 +154,21 @@
       </aside>
 
       <main>
-        <div id="summaryStrip" class="summary-strip"></div>
         <div class="toolbar">
-          <span class="mini">Set an expected number for each classroom. Rooms below target go pastel red, and rooms at target or above go pastel green.</span>
+          <span class="mini">
+            Set an expected number for each classroom. Rooms below target go pastel red,
+            and rooms at target or above go pastel green.
+          </span>
+          <input type="file" id="uploadInput" accept="text/csv,.csv" style="display:none" />
+          <button class="btn ghost" id="uploadBtn">Upload layout (CSV)</button>
         </div>
+
+        <div id="summaryStrip" class="summary-strip"></div>
         <div id="board" class="board"></div>
-        <p class="footer-note">Click a person to change their room, mark them as AIM, add optional times, or leave a note like “At 1pm, she will move to Sasta”.</p>
+        <p class="footer-note">
+          Tip: click a person to move them, mark them out sick or on annual leave, add optional times, or leave a note
+          like “At 1pm, she will move to Sasta”.
+        </p>
       </main>
     </div>
   </div>
@@ -185,11 +194,11 @@
             <option value="absent">Absent</option>
           </select>
         </div>
-        <fieldset class="radio-group">
+        <div class="radio-group">
           <legend>AIM staff</legend>
           <label class="radio-line"><input type="radio" name="aimStatus" value="yes" id="aimYes"> Yes</label>
           <label class="radio-line"><input type="radio" name="aimStatus" value="no" id="aimNo"> No</label>
-        </fieldset>
+        </div>
         <div class="field">
           <label for="editFrom">Optional start time</label>
           <input id="editFrom" type="time" />
@@ -213,10 +222,14 @@
 
   <script>
     const ROOMS = [
-      'Baile Beag','Caislean','Cairde','Noinin','Snug','Sasta','Draoicht','Geal','Rince','Extras','Afterschool','Out Sick','Annual Leave'
+      'Baile Beag','Caislean','Cairde','Noinin','Snug','Sasta','Draoicht','Geal','Rince',
+      'Afterschool','Extras','Out Sick','Annual Leave'
     ];
-    const STORAGE_KEY = 'classroom-staff-planner-v3';
-    const trackedRooms = ['Baile Beag','Caislean','Cairde','Noinin','Snug','Sasta','Draoicht','Geal','Rince','Extras','Afterschool'];
+    const STORAGE_KEY = 'classroom-staff-planner-v2';
+    const trackedRooms = [
+      'Baile Beag','Caislean','Cairde','Noinin','Snug','Sasta','Draoicht','Geal','Rince','Afterschool','Extras'
+    ];
+
     const state = {
       theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
       dayLabel: '',
@@ -227,8 +240,8 @@
 
     const el = {
       board: document.getElementById('board'),
-      teacherList: document.getElementById('teacherList'),
       summaryStrip: document.getElementById('summaryStrip'),
+      teacherList: document.getElementById('teacherList'),
       defaultRoom: document.getElementById('defaultRoom'),
       editRoom: document.getElementById('editRoom'),
       teacherName: document.getElementById('teacherName'),
@@ -241,16 +254,28 @@
       editFrom: document.getElementById('editFrom'),
       editTo: document.getElementById('editTo'),
       editNote: document.getElementById('editNote'),
-      themeToggle: document.getElementById('themeToggle'),
       aimYes: document.getElementById('aimYes'),
-      aimNo: document.getElementById('aimNo')
+      aimNo: document.getElementById('aimNo'),
+      themeToggle: document.getElementById('themeToggle')
     };
 
     function uid(){ return Math.random().toString(36).slice(2,9); }
-    function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify({ dayLabel: state.dayLabel, people: state.people, targets: state.targets, theme: state.theme })); }
+
+    function saveState(){
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          dayLabel: state.dayLabel,
+          people: state.people,
+          targets: state.targets,
+          theme: state.theme
+        })
+      );
+    }
+
     function loadState(){
       const raw = localStorage.getItem(STORAGE_KEY);
-      if(!raw) return;
+      if (!raw) return;
       try {
         const parsed = JSON.parse(raw);
         state.dayLabel = parsed.dayLabel || '';
@@ -259,182 +284,241 @@
         state.theme = parsed.theme || state.theme;
       } catch {}
     }
+
     function applyTheme(){
       document.documentElement.setAttribute('data-theme', state.theme);
       el.themeToggle.innerHTML = state.theme === 'dark'
         ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
         : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
     }
-    function populateRoomOptions(target){ target.innerHTML = ROOMS.map(room => `<option value="${room}">${room}</option>`).join(''); }
+
+    function populateRoomOptions(target){
+      target.innerHTML = ROOMS.map(room => `<option value="${room}">${room}</option>`).join('');
+    }
+
     function personById(id){ return state.people.find(p => p.id === id); }
+
     function statusText(person){
-      if(person.room === 'Out Sick') return 'Out Sick';
-      if(person.room === 'Annual Leave') return 'Annual Leave';
-      if(person.room === 'Extras') return 'Extras';
-      if(person.room === 'Afterschool') return 'Afterschool';
+      if (person.room === 'Out Sick') return 'Out Sick';
+      if (person.room === 'Annual Leave') return 'Annual Leave';
+      if (person.room === 'Extras') return 'Extras';
+      if (person.room === 'Afterschool') return 'Afterschool';
       return person.status === 'absent' ? 'Absent' : 'In';
     }
+
     function timeText(person){
-      if(!person.timeFrom && !person.timeTo) return '';
-      if(person.timeFrom && person.timeTo) return `${person.timeFrom}–${person.timeTo}`;
+      if (!person.timeFrom && !person.timeTo) return '';
+      if (person.timeFrom && person.timeTo) return `${person.timeFrom}–${person.timeTo}`;
       return person.timeFrom || person.timeTo || '';
     }
+
     function addPerson(name, defaultRoom, defaultStatus='in'){
-      state.people.push({ id: uid(), name, defaultRoom, room: defaultRoom, status: defaultStatus, timeFrom: '', timeTo: '', note: '', isAim: false });
+      state.people.push({
+        id: uid(),
+        name,
+        defaultRoom,
+        room: defaultRoom,
+        status: defaultStatus,
+        isAim: false,
+        timeFrom: '',
+        timeTo: '',
+        note: ''
+      });
       saveState();
       render();
     }
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'",'&#39;');
+    }
+
     function renderTeacherList(){
-      if(!state.people.length){
+      if (!state.people.length){
         el.teacherList.innerHTML = '<div class="empty">No staff saved yet.</div>';
         return;
       }
-      el.teacherList.innerHTML = state.people.slice().sort((a,b) => a.name.localeCompare(b.name)).map(person => `
-        <div class="teacher-row">
-          <div>
-            <strong>${escapeHtml(person.name)}${person.defaultRoom === 'Afterschool' ? ' <span class="mini-badge">AS</span>' : ''}</strong>
-            <span>Default: ${escapeHtml(person.defaultRoom)}</span>
+      el.teacherList.innerHTML = state.people
+        .slice()
+        .sort((a,b) => a.name.localeCompare(b.name))
+        .map(person => `
+          <div class="teacher-row">
+            <div>
+              <strong>${escapeHtml(person.name)}</strong>
+              <span>
+                Default: ${escapeHtml(person.defaultRoom)}
+                ${person.defaultRoom === 'Afterschool' ? ' · AS' : ''}
+                ${person.isAim ? ' · AIM' : ''}
+              </span>
+            </div>
+            <button class="btn ghost" data-open="${person.id}">Edit</button>
           </div>
-          <button class="btn ghost" data-open="${person.id}">Edit</button>
-        </div>
-      `).join('');
+        `).join('');
     }
-    function renderSummary(){
-      const under = trackedRooms.filter(room => Number(state.targets[room] || 0) > 0 && state.people.filter(p => p.room === room).length < Number(state.targets[room] || 0));
-      const aimCount = state.people.filter(p => p.isAim).length;
-      const html = [
-        `<span class="pill">Saved staff: ${state.people.length}</span>`,
-        `<span class="pill aim">AIM staff: ${aimCount}</span>`,
-        `<span class="pill">Under target rooms: ${under.length}</span>`
-      ].concat(under.map(room => `<span class="pill">${escapeHtml(room)}</span>`)).join('');
-      el.summaryStrip.innerHTML = html;
+
+    function renderSummaryStrip(){
+      const items = [];
+      trackedRooms.forEach(room => {
+        const people = state.people.filter(p => p.room === room);
+        const target = Number(state.targets[room] || 0);
+        const aimCount = people.filter(p => p.isAim).length;
+        if (!people.length && !target) return;
+        const status = target
+          ? `${people.length}/${target} staff · AIM ${aimCount}`
+          : `${people.length} staff · AIM ${aimCount}`;
+        items.push(`<span class="mini">${escapeHtml(room)}: ${escapeHtml(status)}</span>`);
+      });
+      el.summaryStrip.innerHTML = items.join(' · ') || '';
     }
+
     function renderBoard(){
       el.board.innerHTML = ROOMS.map(room => {
-        const people = state.people.filter(person => person.room === room).sort((a,b) => a.name.localeCompare(b.name));
+        const people = state.people
+          .filter(person => person.room === room)
+          .sort((a,b) => a.name.localeCompare(b.name));
         const target = Number(state.targets[room] || 0);
         const appliesTarget = trackedRooms.includes(room);
         let roomClass = 'room-neutral';
-        let status = room === 'Out Sick' || room === 'Annual Leave' ? 'Tracking absence only' : 'No target set';
-        if(appliesTarget && target > 0){
+        let status = (room === 'Out Sick' || room === 'Annual Leave')
+          ? 'Tracking absence only'
+          : 'No target set';
+
+        if (appliesTarget && target > 0) {
           roomClass = people.length >= target ? 'room-full' : 'room-under';
-          const aimInRoom = people.filter(p => p.isAim).length;
-          status = `${people.length}/${target} assigned · AIM ${aimInRoom}`;
+          status = `${people.length}/${target} assigned`;
         }
+
+        const aimCount = people.filter(p => p.isAim).length;
+
         return `
           <section class="room ${roomClass}">
             <div class="room-header">
               <div>
                 <h3>${escapeHtml(room)}</h3>
-                <small>${people.length} ${people.length === 1 ? 'person' : 'people'}</small>
+                <small>${people.length} ${people.length === 1 ? 'person' : 'people'} · AIM ${aimCount}</small>
                 <div class="room-status">${escapeHtml(status)}</div>
               </div>
-              ${appliesTarget ? `<label class="mini">Target<input class="room-target" type="number" min="0" value="${target}" data-target-room="${escapeHtml(room)}"></label>` : ''}
+              ${appliesTarget ? `
+              <label class="mini">
+                Target
+                <input class="room-target" type="number" min="0"
+                  value="${target}"
+                  data-target-room="${escapeHtml(room)}">
+              </label>` : ''}
             </div>
             <div class="person-list">
-              ${people.length ? people.map(person => `
-                <button class="person-card ${person.isAim ? 'aim' : ''}" data-open="${person.id}">
-                  <div class="person-head">
-                    <strong>${escapeHtml(person.name)}</strong>
-                    <div class="badge-row">
-                      ${person.defaultRoom === 'Afterschool' ? '<span class="mini-badge">AS</span>' : ''}
-                      ${person.isAim ? '<span class="mini-badge aim">AIM</span>' : ''}
-                    </div>
-                  </div>
-                  <div class="person-meta">
-                    <span>${escapeHtml(statusText(person))}</span>
-                    <span>${escapeHtml(timeText(person))}</span>
-                  </div>
-                  ${person.note ? `<div class="note-preview">${escapeHtml(person.note)}</div>` : ''}
-                </button>
-              `).join('') : '<div class="empty">No one placed here.</div>'}
+              ${
+                people.length
+                  ? people.map(person => `
+                    <button class="person-card ${person.isAim ? 'aim' : ''}" data-open="${person.id}">
+                      <div class="person-head">
+                        <strong>${escapeHtml(person.name)}</strong>
+                        <div class="badge-row">
+                          ${person.defaultRoom === 'Afterschool' ? '<span class="mini-badge">AS</span>' : ''}
+                          ${person.isAim ? '<span class="mini-badge aim">AIM</span>' : ''}
+                        </div>
+                      </div>
+                      <div class="person-meta">
+                        <span>${escapeHtml(statusText(person))}</span>
+                        <span>${escapeHtml(timeText(person))}</span>
+                      </div>
+                      ${person.note ? `<div class="note-preview">${escapeHtml(person.note)}</div>` : ''}
+                    </button>
+                  `).join('')
+                  : '<div class="empty">No one placed here.</div>'
+              }
             </div>
           </section>
         `;
       }).join('');
     }
+
     function render(){
       el.dayLabel.value = state.dayLabel;
       renderTeacherList();
-      renderSummary();
       renderBoard();
+      renderSummaryStrip();
       applyTheme();
     }
-    function returnToDefaults(){
-      state.people = state.people.map(person => ({ ...person, room: person.defaultRoom, status: person.defaultRoom === 'Out Sick' || person.defaultRoom === 'Annual Leave' ? 'absent' : 'in', timeFrom: '', timeTo: '', note: '' }));
+
+    function resetToDefaults(){
+      state.people = state.people.map(person => ({
+        ...person,
+        room: person.defaultRoom,
+        status: (person.defaultRoom === 'Out Sick' || person.defaultRoom === 'Annual Leave') ? 'absent' : 'in',
+        timeFrom:'',
+        timeTo:'',
+        note:''
+      }));
       saveState();
       render();
     }
+
     function clearPlacements(){
-      state.people = state.people.map(person => ({ ...person, room: 'Extras', status:'in', timeFrom:'', timeTo:'', note:'' }));
+      state.people = state.people.map(person => ({
+        ...person,
+        room: 'Extras',
+        status:'in',
+        timeFrom:'',
+        timeTo:'',
+        note:''
+      }));
       saveState();
       render();
     }
+
     function openPerson(id){
       const person = personById(id);
-      if(!person) return;
+      if (!person) return;
       state.activePersonId = id;
       el.dialogTitle.textContent = person.name;
       el.dialogSub.textContent = `Default room: ${person.defaultRoom}`;
       el.editRoom.value = person.room;
       el.editStatus.value = person.status;
+      (person.isAim ? el.aimYes : el.aimNo).checked = true;
       el.editFrom.value = person.timeFrom || '';
       el.editTo.value = person.timeTo || '';
       el.editNote.value = person.note || '';
-      (person.isAim ? el.aimYes : el.aimNo).checked = true;
       el.personDialog.showModal();
     }
+
     function savePersonEdits(){
       const person = personById(state.activePersonId);
-      if(!person) return;
+      if (!person) return;
       person.room = el.editRoom.value;
       person.status = el.editStatus.value;
+      person.isAim = el.aimYes.checked;
       person.timeFrom = el.editFrom.value;
       person.timeTo = el.editTo.value;
       person.note = el.editNote.value.trim();
-      person.isAim = el.aimYes.checked;
-      if(person.room === 'Out Sick' || person.room === 'Annual Leave') person.status = 'absent';
+      if (person.room === 'Out Sick' || person.room === 'Annual Leave') {
+        person.status = 'absent';
+      }
       saveState();
       render();
       el.personDialog.close();
     }
+
     function makeCurrentDefault(){
       const person = personById(state.activePersonId);
-      if(!person) return;
+      if (!person) return;
       person.defaultRoom = el.editRoom.value;
       saveState();
       render();
       el.dialogSub.textContent = `Default room: ${person.defaultRoom}`;
     }
+
     function deletePerson(){
       state.people = state.people.filter(person => person.id !== state.activePersonId);
       saveState();
       render();
       el.personDialog.close();
     }
-    function downloadTable(){
-      const rows = [['Day','Name','Current Section','Default Section','Status','AIM','Time From','Time To','Notes']];
-      state.people.slice().sort((a,b) => a.room.localeCompare(b.room) || a.name.localeCompare(b.name)).forEach(person => {
-        rows.push([
-          state.dayLabel || 'Current day',
-          person.name,
-          person.room,
-          person.defaultRoom,
-          statusText(person),
-          person.isAim ? 'Yes' : 'No',
-          person.timeFrom || '',
-          person.timeTo || '',
-          person.note || ''
-        ]);
-      });
-      const csv = rows.map(row => row.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
-      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `classroom-plan-${(state.dayLabel || 'day').replace(/\s+/g,'-').toLowerCase()}.csv`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    }
+
     function loadDemo(){
       state.people = [
         ['Angela','Baile Beag'],['Emma','Baile Beag'],['Ciara','Baile Beag'],
@@ -447,61 +531,238 @@
         ['Rachel','Geal'],['Aoibhinn','Geal'],['Sinead','Geal'],
         ['Ellen','Rince'],['Mary','Rince'],['Joan','Rince'],
         ['Karen','Extras'],['Anne','Extras'],['Nora','Afterschool'],['Sharon','Afterschool']
-      ].map(([name, defaultRoom], index) => ({ id: uid(), name, defaultRoom, room: defaultRoom, status: 'in', timeFrom: '', timeTo: '', note: '', isAim: index % 7 === 0 }));
+      ].map(([name, defaultRoom]) => ({
+        id: uid(),
+        name,
+        defaultRoom,
+        room: defaultRoom,
+        status: 'in',
+        isAim: false,
+        timeFrom: '',
+        timeTo: '',
+        note: ''
+      }));
       saveState();
       render();
-    }
-    function escapeHtml(str){
-      return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
     }
 
     populateRoomOptions(el.defaultRoom);
     populateRoomOptions(el.editRoom);
     loadState();
-    trackedRooms.forEach(room => { if(!(room in state.targets)) state.targets[room] = 0; });
-    state.people = state.people.map(person => ({ isAim:false, ...person }));
+    trackedRooms.forEach(room => { if (!(room in state.targets)) state.targets[room] = 0; });
     render();
 
     document.getElementById('addTeacherBtn').addEventListener('click', () => {
       const name = el.teacherName.value.trim();
-      if(!name){ alert('Enter a staff name first.'); return; }
+      if (!name){
+        alert('Enter a staff name first.');
+        return;
+      }
       addPerson(name, el.defaultRoom.value, el.defaultStatus.value);
       el.teacherName.value = '';
       el.defaultStatus.value = 'in';
     });
+
     document.getElementById('loadDemoBtn').addEventListener('click', loadDemo);
+
     document.getElementById('clearPeopleBtn').addEventListener('click', () => {
-      if(!confirm('Clear all saved staff?')) return;
+      if (!confirm('Clear all saved staff?')) return;
       state.people = [];
       saveState();
       render();
     });
+
     document.getElementById('saveAllBtn').addEventListener('click', () => {
       state.dayLabel = el.dayLabel.value.trim();
       saveState();
       alert('Saved in this browser.');
     });
-    document.getElementById('returnDefaultsBtn').addEventListener('click', returnToDefaults);
+
     document.getElementById('clearPlacementsBtn').addEventListener('click', clearPlacements);
-    document.getElementById('downloadBtn').addEventListener('click', downloadTable);
+    document.getElementById('returnDefaultsBtn').addEventListener('click', resetToDefaults);
+
     document.getElementById('closeDialogBtn').addEventListener('click', () => el.personDialog.close());
     document.getElementById('savePersonBtn').addEventListener('click', savePersonEdits);
     document.getElementById('setDefaultBtn').addEventListener('click', makeCurrentDefault);
     document.getElementById('deletePersonBtn').addEventListener('click', deletePerson);
-    document.getElementById('themeToggle').addEventListener('click', () => { state.theme = state.theme === 'dark' ? 'light' : 'dark'; saveState(); applyTheme(); });
-    el.dayLabel.addEventListener('change', () => { state.dayLabel = el.dayLabel.value.trim(); saveState(); });
+
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      state.theme = state.theme === 'dark' ? 'light' : 'dark';
+      saveState();
+      applyTheme();
+    });
+
+    el.dayLabel.addEventListener('change', () => {
+      state.dayLabel = el.dayLabel.value.trim();
+      saveState();
+    });
+
     document.addEventListener('click', (event) => {
       const id = event.target.getAttribute('data-open');
-      if(id) openPerson(id);
+      if (id) openPerson(id);
     });
+
     document.addEventListener('change', (event) => {
       const room = event.target.getAttribute('data-target-room');
-      if(room){
+      if (room){
         state.targets[room] = Number(event.target.value || 0);
         saveState();
         render();
       }
     });
+
+    function downloadTable(){
+      const people = state.people.slice().sort((a,b) => a.name.localeCompare(b.name));
+      const targetRooms = [
+        'Baile Beag','Caislean','Cairde','Noinin','Snug',
+        'Sasta','Draoicht','Geal','Rince','Afterschool','Extras'
+      ];
+      const baseHeaders = [
+        'Day','Name','Current Section','Default Section',
+        'Status','AIM','Time From','Time To','Notes'
+      ];
+      const targetHeaders = targetRooms.map(r => `Target ${r}`);
+      const rows = [baseHeaders.concat(targetHeaders)];
+
+      const day = state.dayLabel || 'Current day';
+      const targetRowValues = targetRooms.map(room => String(state.targets[room] || 0));
+
+      people.forEach(person => {
+        const base = [
+          day,
+          person.name,
+          person.room,
+          person.defaultRoom,
+          person.status,
+          person.isAim ? 'Yes' : 'No',
+          person.timeFrom || '',
+          person.timeTo || '',
+          person.note || ''
+        ];
+        rows.push(base.concat(targetRowValues));
+      });
+
+      const csv = rows
+        .map(row => row.map(value => '"' + String(value).replaceAll('"','""') + '"').join(','))
+        .join('\n');
+
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'classroom-staff-table.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    document.getElementById('downloadBtn').addEventListener('click', downloadTable);
+  </script>
+
+  <!-- CSV upload: reads Day, AIM, and Target ROOM columns -->
+  <script>
+    (function(){
+      function parseCsv(text){
+        const lines = text.split(/\r?\n/).filter(l => l.trim().length);
+        if (lines.length < 2) return [];
+        const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g,'').trim());
+        return lines.slice(1).map(line => {
+          const cols = [];
+          let cur = '';
+          let inside = false;
+          for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') {
+              if (inside && line[i+1] === '"') { cur += '"'; i++; }
+              else { inside = !inside; }
+            } else if (ch === ',' && !inside) {
+              cols.push(cur); cur = '';
+            } else {
+              cur += ch;
+            }
+          }
+          cols.push(cur);
+          const row = {};
+          headers.forEach((h,idx) => {
+            row[h] = (cols[idx] || '').replace(/^"|"$/g,'');
+          });
+          return row;
+        });
+      }
+
+      function handleFile(file){
+        const reader = new FileReader();
+        reader.onload = function(e){
+          try {
+            const rows = parseCsv(e.target.result);
+            if (!rows.length){
+              alert('CSV looked empty.');
+              return;
+            }
+
+            const targetRooms = [
+              'Baile Beag','Caislean','Cairde','Noinin','Snug',
+              'Sasta','Draoicht','Geal','Rince','Afterschool','Extras'
+            ];
+
+            const people = rows.map(row => ({
+              id: Math.random().toString(36).slice(2,9),
+              name: row['Name'] || '',
+              room: row['Current Section'] || 'Extras',
+              defaultRoom: row['Default Section'] || 'Extras',
+              status: row['Status'] || 'in',
+              isAim: (row['AIM'] || '').toLowerCase().startsWith('y'),
+              timeFrom: row['Time From'] || '',
+              timeTo: row['Time To'] || '',
+              note: row['Notes'] || ''
+            })).filter(p => p.name.trim().length);
+
+            if (!people.length){
+              alert('No names found in CSV.');
+              return;
+            }
+
+            const first = rows[0] || {};
+            const targets = {};
+            targetRooms.forEach(room => {
+              const key = `Target ${room}`;
+              if (Object.prototype.hasOwnProperty.call(first, key)) {
+                const v = Number(first[key] || 0);
+                if (!Number.isNaN(v)) targets[room] = v;
+              }
+            });
+
+            const raw = localStorage.getItem('classroom-staff-planner-v2');
+            let data = raw ? JSON.parse(raw) : { targets:{}, dayLabel:'' };
+
+            data.people = people;
+            if (Object.keys(targets).length) {
+              data.targets = targets;
+            }
+
+            if (rows[0] && rows[0]['Day']) {
+              data.dayLabel = rows[0]['Day'];
+            }
+
+            localStorage.setItem('classroom-staff-planner-v2', JSON.stringify(data));
+            alert('Layout loaded from CSV. Reload the page to see it.');
+          } catch (err) {
+            console.error(err);
+            alert('Could not read that CSV. Make sure it came from the Download table button.');
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      const uploadBtn = document.getElementById('uploadBtn');
+      const uploadInput = document.getElementById('uploadInput');
+      if (uploadBtn && uploadInput){
+        uploadBtn.addEventListener('click', function(){
+          uploadInput.click();
+        });
+        uploadInput.addEventListener('change', function(){
+          if (this.files && this.files[0]) handleFile(this.files[0]);
+        });
+      }
+    })();
   </script>
 </body>
 </html>
